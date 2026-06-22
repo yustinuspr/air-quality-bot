@@ -1,91 +1,34 @@
-#!/usr/bin/env node
-
-/**
- * Module dependencies.
- */
-
 require('dotenv').config();
-const app = require('./app');
-const debug = require('debug')('air-quality-bot:server');
-const http = require('http');
+const express = require('express');
+const { Bot, webhookCallback } = require('grammy');
 
-/**
- * Get port from environment and store in Express.
- */
+const index = require('./controller');
 
-const port = normalizePort(process.env.PORT || '3000');
-app.set('port', port);
+const { TELEGRAM_TOKEN, IS_LOCAL  } = process.env;
 
-/**
- * Create HTTP server.
- */
+const bot = new Bot(TELEGRAM_TOKEN);
 
-const server = http.createServer(app);
+bot.on('message:text', index);
 
-/**
- * Listen on provided port, on all network interfaces.
- */
-
-server.listen(port);
-server.on('error', onError);
-server.on('listening', onListening);
-
-/**
- * Normalize a port into a number, string, or false.
- */
-
-function normalizePort(val) {
-  const port = parseInt(val, 10);
-
-  if (isNaN(port)) {
-    // named pipe
-    return val;
+// If local, start the bot from local code instead of vercel
+if (IS_LOCAL === 'true') {
+  try {
+    bot.start();
+  } catch (error) {
+    console.error(error);
   }
+} else {
+  const app = express();
 
-  if (port >= 0) {
-    // port number
-    return port;
-  }
+  // Parse JSON payloads
+  app.use(express.json());
 
-  return false;
-}
+  // Webhook endpoint consumed by Telegram
+  app.post('/api/bot', webhookCallback(bot, 'express'));
 
-/**
- * Event listener for HTTP server "error" event.
- */
+  // Health-check route
+  app.get('/api/bot', (req, res) => res.send('Bot is running via webhook.'));
 
-function onError(error) {
-  if (error.syscall !== 'listen') {
-    throw error;
-  }
-
-  const bind = typeof port === 'string'
-    ? 'Pipe ' + port
-    : 'Port ' + port;
-
-  // handle specific listen errors with friendly messages
-  switch (error.code) {
-    case 'EACCES':
-      console.error(bind + ' requires elevated privileges');
-      process.exit(1);
-      break;
-    case 'EADDRINUSE':
-      console.error(bind + ' is already in use');
-      process.exit(1);
-      break;
-    default:
-      throw error;
-  }
-}
-
-/**
- * Event listener for HTTP server "listening" event.
- */
-
-function onListening() {
-  const addr = server.address();
-  const bind = typeof addr === 'string'
-    ? 'pipe ' + addr
-    : 'port ' + addr.port;
-  debug('Listening on ' + bind);
+  // Vercel expects the Express app to be the default export
+  module.exports = app;
 }
