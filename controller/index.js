@@ -29,7 +29,7 @@ module.exports = async (ctx) => {
       replies.push(iqAirWording);
     }
 
-    const wording = replies.join('\n\n');
+    const wording = replies.join('\n\n') || 'No data available for this city.';
 
     return ctx.reply(wording, { parse_mode: 'HTML' });
   } catch (error) {
