@@ -1,8 +1,5 @@
-const axios = require('axios');
-
-const { AQICN_TOKEN, STATION_ID } = process.env;
-
-const aqiHelpers = require('../helpers/aqi');
+const aqiCnService = require('../services/aqicn');
+const iqAirService = require('../services/iqair');
 
 /**
  * Controller to reply with the current AQI data
@@ -11,34 +8,28 @@ const aqiHelpers = require('../helpers/aqi');
  */
 module.exports = async (ctx) => {
   try {
-    const { data } = await axios.get(`https://api.waqi.info/feed/${STATION_ID}/`, {
-      params: { token: AQICN_TOKEN },
-    });
+    const [aqiCnData, iqAirData] = await Promise.allSettled([
+      aqiCnService.getAirQuality(ctx.message.text),
+      iqAirService.getAirQuality(ctx.message.text),
+    ]);
 
-    const { aqi, iaqi, city } = data.data;
+    const replies = [];
 
-    const aqiLabel = aqiHelpers.transformAqiToLabel(aqi);
+    console.log('aqiCnData: ', aqiCnData, 'iqAirData: ', iqAirData);
 
-    const stationName = city.name;
-    const humidityLevel = iaqi?.h?.v;
-    const temperatureLevel = iaqi?.t?.v;
+    if (aqiCnData?.value) {
+      const aqiCnWording = aqiCnService.parseWordingAqiCn(aqiCnData.value);
 
-    const pm1Level = iaqi?.pm1?.v;
-    const pm1Label = aqiHelpers.transformAqiToLabel(pm1Level);
+      replies.push(aqiCnWording);
+    }
 
-    const pm10Level = iaqi?.pm10?.v;
-    const pm10Label = aqiHelpers.transformAqiToLabel(pm10Level);
+    if (iqAirData?.value) {
+      const iqAirWording = iqAirService.parseWordingIqAir(iqAirData.value);
 
-    const pm25Level = iaqi?.pm25?.v;
-    const pm25Label = aqiHelpers.transformAqiToLabel(pm25Level);
+      replies.push(iqAirWording);
+    }
 
-    const wording = `Data from <b>${stationName}</b>>\n`
-    + `Current AQI: ${aqi} (<b>${aqiLabel}</b>)\n`
-    + `Humidity: ${humidityLevel}%\n`
-    + `Temperature: ${temperatureLevel}°C\n`
-    + `PM1: ${pm1Level} (<b>${pm1Label}</b>)\n`
-    + `PM10: ${pm10Level} (<b>${pm10Label}</b>)\n`
-    + `PM2.5: ${pm25Level} (<b>${pm25Label}</b>)\n`
+    const wording = replies.join('\n\n');
 
     return ctx.reply(wording, { parse_mode: 'HTML' });
   } catch (error) {
