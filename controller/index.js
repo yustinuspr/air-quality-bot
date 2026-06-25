@@ -8,7 +8,6 @@ const iqAirService = require('../services/iqair');
  */
 module.exports = async (ctx) => {
   try {
-
     const text = ctx.message.text.replaceAll('/', '');
 
     const [aqiCnData, iqAirData] = await Promise.allSettled([
