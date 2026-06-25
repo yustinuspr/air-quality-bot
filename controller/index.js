@@ -8,14 +8,15 @@ const iqAirService = require('../services/iqair');
  */
 module.exports = async (ctx) => {
   try {
+
+    const text = ctx.message.text.replaceAll('/', '');
+
     const [aqiCnData, iqAirData] = await Promise.allSettled([
-      aqiCnService.getAirQuality(ctx.message.text),
-      iqAirService.getAirQuality(ctx.message.text),
+      aqiCnService.getAirQuality(text),
+      iqAirService.getAirQuality(text),
     ]);
 
     const replies = [];
-
-    console.log('aqiCnData: ', aqiCnData, 'iqAirData: ', iqAirData);
 
     if (aqiCnData?.value) {
       const aqiCnWording = aqiCnService.parseWordingAqiCn(aqiCnData.value);
