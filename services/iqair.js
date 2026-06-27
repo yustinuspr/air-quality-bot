@@ -2,6 +2,8 @@ const axios = require('axios');
 
 const aqiHelpers = require('../helpers/aqi');
 
+const { CACHE_AGE_IN_MS } = require('../constants/cache');
+
 const { IQAIR_TOKEN, IQAIR_MAPPING } = process.env;
 
 let iqAirMapping;
@@ -11,6 +13,8 @@ try {
 } catch (e) {
   console.error('Error parsing IQAIR_MAPPING', e);
 }
+
+const iqAirResult = {};
 
 /**
  * Get Air Quality Index from IQAIR API
@@ -31,6 +35,10 @@ exports.getAirQuality = async (city) => {
     console.error(`City not found for ${city}`);
 
     return null;
+  }
+
+  if (iqAirResult[cityMapping.city]) {
+    return iqAirResult[cityMapping.city];
   }
 
   try {
@@ -54,6 +62,27 @@ exports.getAirQuality = async (city) => {
     const humidityLevel = weather?.hu;
     const temperatureLevel = weather?.tp;
     const heatIndexLevel = weather?.heatIndex;
+
+    const result = {
+      aqiLevel,
+      aqiLabel,
+      city,
+      humidityLevel,
+      temperatureLevel,
+      heatIndexLevel,
+    };
+
+    // Set cache for future use.
+    // This being done to reduce the number of API calls.
+    // We use in memory cache instead of Redis because the key size is small.
+    iqAirResult[cityMapping.city] = result;
+
+    setTimeout(() => {
+        // Clear cache after it met cache age
+        iqAirResult[cityMapping.city] = null;
+      },
+      CACHE_AGE_IN_MS,
+    )
 
     return {
       aqiLevel,

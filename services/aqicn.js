@@ -2,6 +2,8 @@ const axios = require('axios');
 
 const aqiHelpers = require('../helpers/aqi');
 
+const { CACHE_AGE_IN_MS } = require('../constants/cache');
+
 const { AQICN_TOKEN, AQICN_MAPPING } = process.env;
 
 let aqiCnMapping;
@@ -11,6 +13,8 @@ try {
 } catch (e) {
   console.error('Error parsing AQICN_MAPPING', e);
 }
+
+const aqiCnResult = {};
 
 /**
  * Get Air Quality Index from AQICN API
@@ -31,6 +35,11 @@ exports.getAirQuality = async (city) => {
     console.error(`Station not found for ${city}`);
 
     return null;
+  }
+
+  if (aqiCnResult[stationId]) {
+    // If cache exists, return it immediately from the cache.
+    return aqiCnResult[stationId];
   }
 
   try {
@@ -55,7 +64,7 @@ exports.getAirQuality = async (city) => {
     const pm25Level = iaqi?.pm25?.v;
     const pm25Label = aqiHelpers.transformAqiToLabel(pm25Level);
 
-    return {
+    const result = {
       aqi,
       aqiLabel,
       iaqi,
@@ -69,6 +78,19 @@ exports.getAirQuality = async (city) => {
       pm25Level,
       pm25Label,
     };
+
+    // Set cache for future use.
+    // This being done to reduce the number of API calls.
+    aqiCnResult[stationId] = result;
+
+    setTimeout(() => {
+        // Clear cache after it met cache age
+        aqiCnResult[stationId] = null;
+      },
+      CACHE_AGE_IN_MS,
+    );
+
+    return result;
   } catch (err) {
     console.error('Error fetching AQI data from AQICN', err?.response?.data || err);
 

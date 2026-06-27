@@ -1,0 +1,1 @@
+exports.CACHE_AGE_IN_MS = 1000 * 60 * 3; // 3 minutes
