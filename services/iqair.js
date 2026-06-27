@@ -54,7 +54,8 @@ exports.getAirQuality = async (city) => {
       }
     );
 
-    const { pollution, weather } = data?.data?.current || {};
+    const { current, city: cityResponse } = data?.data || {};
+    const { pollution, weather } = current || {};
 
     const aqiLevel = pollution?.aqius;
     const aqiLabel = aqiHelpers.transformAqiToLabel(aqiLevel);
@@ -66,7 +67,7 @@ exports.getAirQuality = async (city) => {
     const result = {
       aqiLevel,
       aqiLabel,
-      city,
+      city: cityResponse,
       humidityLevel,
       temperatureLevel,
       heatIndexLevel,
@@ -84,14 +85,7 @@ exports.getAirQuality = async (city) => {
       CACHE_AGE_IN_MS,
     )
 
-    return {
-      aqiLevel,
-      aqiLabel,
-      city,
-      humidityLevel,
-      temperatureLevel,
-      heatIndexLevel,
-    };
+    return result;
   } catch (err) {
     console.error('Error fetching AQI data from IQAIR', err?.response?.data || err);
 
