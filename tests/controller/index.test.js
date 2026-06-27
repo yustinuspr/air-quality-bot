@@ -65,13 +65,13 @@ describe('controller/index', () => {
     expect(ctx.reply).toHaveBeenCalledWith('IQAIR wording', { parse_mode: 'HTML' });
   });
 
-  it('replies with an empty string when both services return null', async () => {
+  it('replies with an no data available when both services return null', async () => {
     aqiCnService.getAirQuality.mockResolvedValue(null);
     iqAirService.getAirQuality.mockResolvedValue(null);
 
     await controller(ctx);
 
-    expect(ctx.reply).toHaveBeenCalledWith('', { parse_mode: 'HTML' });
+    expect(ctx.reply).toHaveBeenCalledWith('No data available for this city.', { parse_mode: 'HTML' });
   });
 
   it('calls both services in parallel', async () => {
@@ -104,7 +104,7 @@ describe('controller/index', () => {
     await controller(ctx);
 
     // Promise.allSettled never throws, so wording path is followed
-    expect(ctx.reply).toHaveBeenCalledWith('', { parse_mode: 'HTML' });
+    expect(ctx.reply).toHaveBeenCalledWith('No data available for this city.', { parse_mode: 'HTML' });
     consoleSpy.mockRestore();
   });
 });

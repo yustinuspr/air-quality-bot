@@ -32,7 +32,7 @@ describe('AQICN service', () => {
       const freshService = require('../../services/aqicn');
 
       const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
-      const result = await freshService.getAirQuality('jakarta');
+      const result = await freshService.getAirQuality('unknown-city');
 
       expect(result).toBeNull();
       expect(consoleSpy).toHaveBeenCalledWith('AQICN_MAPPING is not set');
@@ -65,12 +65,12 @@ describe('AQICN service', () => {
           data: {
             aqi: 42,
             iaqi: { h: { v: 60 }, t: { v: 28 } },
-            city: { name: 'Jakarta Station' },
+            city: { name: 'City Station' },
           },
         },
       });
 
-      const result = await service.getAirQuality('city-123');
+      const result = await service.getAirQuality('CITY-123');
 
       expect(result).not.toBeNull();
       expect(axios.get).toHaveBeenCalledWith(
@@ -99,18 +99,18 @@ describe('AQICN service', () => {
           data: {
             aqi: 42,
             iaqi: mockIaqi,
-            city: { name: 'Jakarta Station' },
+            city: { name: 'City Station' },
           },
         },
       });
 
-      const result = await service.getAirQuality('city-123');
+      const result = await service.getAirQuality('CITY-123');
 
       expect(result).toEqual({
         aqi: 42,
         aqiLabel: 'Good',
         iaqi: mockIaqi,
-        stationName: 'Jakarta Station',
+        stationName: 'City Station',
         humidityLevel: 65,
         temperatureLevel: 30,
         pm1Level: 10,
@@ -130,16 +130,16 @@ describe('AQICN service', () => {
           data: {
             aqi: 20,
             iaqi: {},
-            city: { name: 'Jakarta Station' },
+            city: { name: 'City Station' },
           },
         },
       });
 
-      const result = await service.getAirQuality('city-123');
+      const result = await service.getAirQuality('CITY-123');
 
       expect(result).toMatchObject({
         aqi: 20,
-        stationName: 'Jakarta Station',
+        stationName: 'City Station',
         humidityLevel: undefined,
         temperatureLevel: undefined,
         pm1Level: undefined,
@@ -153,7 +153,7 @@ describe('AQICN service', () => {
 
       axios.get.mockRejectedValue(new Error('Network Error'));
 
-      const result = await service.getAirQuality('city-123');
+      const result = await service.getAirQuality('CITY-123');
 
       expect(result).toBeNull();
       expect(consoleSpy).toHaveBeenCalledWith(
@@ -168,7 +168,7 @@ describe('AQICN service', () => {
 
   describe('parseWordingAqiCn', () => {
     const baseData = {
-      stationName: 'Jakarta Station',
+      stationName: 'City Station',
       aqi: 42,
       aqiLabel: 'Good',
       humidityLevel: 65,
@@ -184,7 +184,7 @@ describe('AQICN service', () => {
     it('returns a string with all fields when all data is present', () => {
       const result = service.parseWordingAqiCn(baseData);
 
-      expect(result).toContain('<b>[AQICN]</b> Data from <b>Jakarta Station</b>');
+      expect(result).toContain('<b>[AQICN]</b> Data from <b>City Station</b>');
       expect(result).toContain('Current AQI: 42 (<b>Good</b>)');
       expect(result).toContain('Humidity: 65%');
       expect(result).toContain('Temperature: 30°C');

@@ -31,7 +31,7 @@ describe('IQAir service', () => {
       const freshService = require('../../services/iqair');
 
       const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
-      const result = await freshService.getAirQuality('city-123');
+      const result = await freshService.getAirQuality('CITY-123');
 
       expect(result).toBeNull();
       expect(consoleSpy).toHaveBeenCalledWith('IQAIR_MAPPING is not set');
@@ -62,6 +62,7 @@ describe('IQAir service', () => {
       axios.get.mockResolvedValue({
         data: {
           data: {
+            city: 'City-123',
             current: {
               pollution: { aqius: 42 },
               weather: { hu: 60, tp: 28, heatIndex: 31 },
@@ -92,6 +93,7 @@ describe('IQAir service', () => {
       axios.get.mockResolvedValue({
         data: {
           data: {
+            city: 'City-123',
             current: {
               pollution: { aqius: 75 },
               weather: { hu: 65, tp: 30, heatIndex: 34 },
@@ -100,12 +102,12 @@ describe('IQAir service', () => {
         },
       });
 
-      const result = await service.getAirQuality('city-123');
+      const result = await service.getAirQuality('CITY-123');
 
       expect(result).toEqual({
         aqiLevel: 75,
         aqiLabel: 'Moderate',
-        city: 'city-123',
+        city: 'City-123',
         humidityLevel: 65,
         temperatureLevel: 30,
         heatIndexLevel: 34,
@@ -118,6 +120,7 @@ describe('IQAir service', () => {
       axios.get.mockResolvedValue({
         data: {
           data: {
+            city: 'City-123',
             current: {
               pollution: { aqius: 20 },
               weather: {},
@@ -126,11 +129,11 @@ describe('IQAir service', () => {
         },
       });
 
-      const result = await service.getAirQuality('city-123');
+      const result = await service.getAirQuality('CITY-123');
 
       expect(result).toMatchObject({
         aqiLevel: 20,
-        city: 'city-123',
+        city: 'City-123',
         humidityLevel: undefined,
         temperatureLevel: undefined,
         heatIndexLevel: undefined,
@@ -144,7 +147,7 @@ describe('IQAir service', () => {
         data: { data: {} },
       });
 
-      const result = await service.getAirQuality('city-123');
+      const result = await service.getAirQuality('CITY-123');
 
       expect(result).toMatchObject({
         aqiLevel: undefined,
@@ -159,7 +162,7 @@ describe('IQAir service', () => {
 
       axios.get.mockRejectedValue(new Error('Network Error'));
 
-      const result = await service.getAirQuality('city-123');
+      const result = await service.getAirQuality('CITY-123');
 
       expect(result).toBeNull();
       expect(consoleSpy).toHaveBeenCalledWith(
@@ -168,13 +171,34 @@ describe('IQAir service', () => {
       );
       consoleSpy.mockRestore();
     });
+
+    it('returns cached result on a second call without hitting the API again', async () => {
+      aqiHelpers.transformAqiToLabel.mockReturnValue('Good');
+      axios.get.mockResolvedValue({
+        data: {
+          data: {
+            city: 'city-123',
+            current: {
+              pollution: { aqius: 42 },
+              weather: { hu: 60, tp: 28, heatIndex: 31 },
+            },
+          },
+        },
+      });
+
+      const first = await service.getAirQuality('city-123');
+      const second = await service.getAirQuality('city-123');
+
+      expect(axios.get).toHaveBeenCalledTimes(1);
+      expect(second).toEqual(first);
+    });
   });
 
   // --- parseWordingIqAir ---
 
   describe('parseWordingIqAir', () => {
     const baseData = {
-      city: 'city-123',
+      city: 'City-123',
       aqiLevel: 75,
       aqiLabel: 'Moderate',
       humidityLevel: 65,
@@ -185,7 +209,7 @@ describe('IQAir service', () => {
     it('returns a string with all fields when all data is present', () => {
       const result = service.parseWordingIqAir(baseData);
 
-      expect(result).toContain('<b>[IQAIR]</b> Data from <b>city-123</b>');
+      expect(result).toContain('<b>[IQAIR]</b> Data from <b>City-123</b>');
       expect(result).toContain('Current AQI: 75 (<b>Moderate</b>)');
       expect(result).toContain('Humidity: 65%');
       expect(result).toContain('Temperature: 30°C');
